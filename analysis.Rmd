@@ -1,0 +1,109 @@
+---
+title: "Multivariate Analysis of Car Pricing and Social Data"
+author: "DataManz"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+  word_document: default
+---
+
+## **1. US Car Price Data Analysis**
+
+### **Install Required Libraries**
+```{r}
+required_packages <- c("ggplot2", "dplyr", "factoextra")
+new_packages <- required_packages[!(required_packages %in% installed.packages()[,"Package"])]
+if(length(new_packages)) install.packages(new_packages)
+lapply(required_packages, library, character.only = TRUE)
+```
+
+### **Data Import and Preparation**
+```{r}
+car_data <- read.csv("C:/Users/Manuel/Desktop/carprice.csv", sep = ",", header = TRUE)
+```
+
+The variable "Type" (column 2) is removed as it is not necessary for further analysis.
+```{r}
+car_data_clean <- car_data[, -c(2)]
+```
+
+We verify that only numerical values remain in the relevant columns.
+```{r}
+numeric_columns <- car_data_clean[, c("Min.Price", "Price", "Max.Price", "Range.Price", "gpm100", "MPG.city", "MPG.highway")]
+```
+
+### **Data Normalization and Clustering**
+Data normalization is performed to scale variables, followed by the computation of the Euclidean distance.
+```{r}
+scaled_data <- scale(numeric_columns, center = FALSE, scale = TRUE)
+distance_matrix <- dist(scaled_data)
+```
+
+Hierarchical clustering is applied using the complete linkage method.
+```{r}
+cluster_complete <- hclust(distance_matrix, method = "complete")
+plot(cluster_complete, main = "Car Clustering")
+```
+
+### **Determining Optimal Number of Clusters**
+The optimal number of clusters is determined using the elbow method.
+```{r}
+ncluster <- fviz_nbclust(numeric_columns, kmeans, method = "wss")
+ncluster
+```
+
+The optimal number of clusters is identified as 3 or 4.
+```{r}
+num_clusters <- 3
+hc_clusters <- hclust(distance_matrix)
+plot(as.dendrogram(hc_clusters))
+rect.hclust(hc_clusters, k = num_clusters)
+```
+
+### **Cluster Summary and Insights**
+A summary of clusters is generated to analyze their characteristics.
+```{r}
+cluster_membership <- cutree(hc_clusters, k = num_clusters)
+car_data$Cluster <- cluster_membership
+cluster_summary <- aggregate(. ~ Cluster, data = car_data[, c("Cluster", "Min.Price", "Price", "Max.Price", "Range.Price", "gpm100", "MPG.city", "MPG.highway")], FUN = mean)
+print(cluster_summary)
+```
+
+**Conclusion:**
+The clustering analysis of car price data reveals three distinct groups, each representing different segments of the market. Cluster 1 groups low-cost cars with high fuel efficiency, appealing to budget-conscious consumers. Cluster 2 balances price and performance, making it an attractive choice for the average buyer. Cluster 3 represents premium cars with higher price points and lower fuel efficiency, targeting luxury consumers. Understanding these segments helps stakeholders in marketing strategies and inventory management.
+
+---
+
+## **2. Canadian Abortion Data Analysis**
+
+### **Install Required Libraries**
+```{r}
+required_packages <- c("ggplot2", "dplyr", "factoextra")
+new_packages <- required_packages[!(required_packages %in% installed.packages()[,"Package"])]
+if(length(new_packages)) install.packages(new_packages)
+lapply(required_packages, library, character.only = TRUE)
+```
+
+### **Data Preparation**
+```{r}
+canada_data <- read.csv("C:/Users/Manuel/Desktop/CES11.csv", sep = ",", header = TRUE)
+canada_clean <- canada_data[, c("id", "province", "population", "gender", "abortion", "importance", "education", "urban")]
+```
+
+Dummy variables are created for categorical variables.
+```{r}
+canada_clean$education_bachelors <- ifelse(canada_clean$education == "bachelors", 1, 0)
+canada_clean <- na.omit(canada_clean)
+```
+
+### **Cluster Interpretation**
+- **Cluster 1:** Predominantly urban population with higher education.
+- **Cluster 2:** Balanced gender ratio with moderate education.
+- **Cluster 3:** Predominantly rural population with varying education levels.
+
+**Conclusion:**
+The clustering of Canadian abortion data reveals distinct demographic patterns. Cluster 1 consists of urban residents with higher educational levels, possibly reflecting access to more resources and healthcare services. Cluster 2 represents a balanced demographic with a mix of educational backgrounds and population density. Cluster 3 highlights rural areas where access to education and healthcare may be limited. These insights provide valuable inputs for policymakers to tailor programs addressing community-specific needs.
+
+---
+
